@@ -1,6 +1,5 @@
 from bilibili import bilibili
-import requests
-import hashlib
+from login import login
 import time
 import datetime
 import asyncio
@@ -13,12 +12,12 @@ def CurrentTime():
 
 class OnlineHeart():
 
-
     async def apppost_heartbeat(self):
         await bilibili().apppost_heartbeat()
 
     async def pcpost_heartbeat(self):
-        await bilibili().pcpost_heartbeat()
+        response = await bilibili().pcpost_heartbeat()
+        return response
 
     async def heart_gift(self):
         await bilibili().heart_gift()
@@ -26,14 +25,15 @@ class OnlineHeart():
 
     # 因为休眠时间差不多,所以放到这里,此为实验性功能
     async def draw_lottery(self):
-        for i in range(60,80):
-            response  = await bilibili().get_lotterylist(i)
+        black_list = ["测试","test"]
+        for i in range(68,90):
+            response = await bilibili().get_lotterylist(i)
             json_response = await response.json()
             if json_response['code'] == 0:
                 temp = json_response['data']['title']
-                if "测试" in temp:
-                    print("检测到疑似钓鱼类测试抽奖，默认不参与，请自行判断抽奖可参与性")
-                    # print(url)
+                for i in black_list:
+                    if i in temp:
+                        print("检测到疑似钓鱼类测试抽奖，默认不参与，请自行判断抽奖可参与性")
                 else:
                     check = len(json_response['data']['typeB'])
                     for g in range(0, check):
@@ -53,11 +53,12 @@ class OnlineHeart():
     async def run(self):
         while 1:
             Printer().printlist_append(['join_lottery', '', 'user', "心跳"], True)
+            response = await self.pcpost_heartbeat()
+            json_response = await response.json()
+            if json_response['code'] == 3:
+                Printer().printlist_append(['join_lottery', '', 'user', "cookie过期,将重新登录"], True)
+                await login().login()
             await self.apppost_heartbeat()
-            await self.pcpost_heartbeat()
             await self.heart_gift()           
             await self.draw_lottery()
-            # print('OnlineHeart is over')
             await asyncio.sleep(300)
-
-

@@ -19,7 +19,7 @@ class Tasks():
         response = await bilibili().get_dailybag()
         json_response = await response.json()
         for i in range(0,len(json_response['data']['bag_list'])):
-            Printer().printlist_append(['join_lottery', '', 'user', "# 获得-" + json_response['data']['bag_list'][i]['bag_name'] + "-成功"])
+            Printer().printlist_append(['join_lottery', '', 'user', "# 获得-" + json_response['data']['bag_list'][i]['bag_name'] + "-成功"],True)
 
 
     def CurrentTime(self):
@@ -30,16 +30,16 @@ class Tasks():
     async def DoSign(self):
         response = await bilibili().get_dosign()
         temp = await response.json(content_type=None)
-        Printer().printlist_append(['join_lottery', '', 'user', "# 签到状态:",temp['msg']])
+        Printer().printlist_append(['join_lottery', '', 'user', "签到状态:",temp['msg']],True)
 
     # 领取每日任务奖励
     async def Daily_Task(self):
         response2 = await bilibili().get_dailytask()
         json_response2 = await response2.json()
-        Printer().printlist_append(['join_lottery', '', 'user', "# 双端观看直播:", json_response2["msg"]])
+        Printer().printlist_append(['join_lottery', '', 'user', "双端观看直播:", json_response2["msg"]],True)
 
     # 应援团签到
-    def link_sign(self):
+    async def link_sign(self):
         response = bilibili().get_grouplist()
         check = len(response.json()['data']['list'])
         group_id_list = []
@@ -91,18 +91,19 @@ class Tasks():
                 gift_id = int(temp[i][0])
                 gift_num = int(temp[i][1])
                 bag_id = int(temp[i][2])
-                if (gift_num * (temp_dic[gift_id] / 100) < left_num) and (gift_id != 4 and gift_id != 3):
-                    calculate = calculate + temp_dic[gift_id] / 100 * gift_num
-                    # tmp = calculate / (temp_dic[gift_id] / 100)
-                    tmp2 = temp_dic[gift_id] / 100 * gift_num
-                    await utils.send_gift_web(roomid,gift_id,gift_num,bag_id)
-                    left_num = left_num-tmp2
-                elif left_num - temp_dic[gift_id] / 100 >= 0 and (gift_id != 4 and gift_id != 3):
-                    tmp = (left_num) / (temp_dic[gift_id] / 100)
-                    tmp1 = (temp_dic[gift_id] / 100) * int(tmp)
-                    calculate = calculate + tmp1
-                    await utils.send_gift_web(roomid, gift_id, tmp, bag_id)
-                    left_num = left_num - tmp1
+                expire = int(temp[i][3])
+                if (gift_id != 4 and gift_id != 3 and gift_id != 9 and gift_id != 10) and expire != 0:
+                    if (gift_num * (temp_dic[gift_id] / 100) < left_num):
+                        calculate = calculate + temp_dic[gift_id] / 100 * gift_num
+                        tmp2 = temp_dic[gift_id] / 100 * gift_num
+                        await utils.send_gift_web(roomid,gift_id,gift_num,bag_id)
+                        left_num = left_num-tmp2
+                    elif left_num - temp_dic[gift_id] / 100 >= 0:
+                        tmp = (left_num) / (temp_dic[gift_id] / 100)
+                        tmp1 = (temp_dic[gift_id] / 100) * int(tmp)
+                        calculate = calculate + tmp1
+                        await utils.send_gift_web(roomid, gift_id, tmp, bag_id)
+                        left_num = left_num - tmp1
             Printer().printlist_append(['join_lottery', '', 'user', "# 自动送礼共送出亲密度为%s的礼物" % int(calculate)])
             
     async def doublegain_coin2silver(self):
@@ -124,13 +125,13 @@ class Tasks():
 
     async def run(self):
         while 1:
-            Printer().printlist_append(['join_lottery', '', 'user', "每日任务"], True)
+            Printer().printlist_append(['join_lottery', '', 'user', "执行每日任务"], True)
             await self.sliver2coin()
             await self.doublegain_coin2silver()
             await self.DoSign()
             await self.Daily_bag()
             await self.Daily_Task()
-            self.link_sign()
+            await self.link_sign()
             await self.send_gift()
             await self.auto_send_gift()
             await asyncio.sleep(21600)
